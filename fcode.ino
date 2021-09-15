@@ -102,20 +102,12 @@ void matrixTranspose(int r, int c, double m1[][2],double m2[][2])
 }
 double temp1[2][2]={0,0,0,0};
 double temp2[2][2]={0,0,0,0};
-double temp3[2][2]={0,0,0,0};
-double temp4[2][2]={0,0,0,0};
-double temp5[2][2]={0,0,0,0};
-double temp6[2][2]={0,0,0,0};
-double temp7[2][2]={0,0,0,0};
-double temp8[2][1]={0,0};
-double temp9[2][1]={0,0};
-double temp10[2][2]={0,0,0,0};
-double temp11[2][2]={0,0,0,0};
+
 double dt = 0.02;
-double x[2][2]={0.74,0,0,0};
-double F[2][2]={1,dt,0,1};
-double Ft[2][2]={0,0,0,0};
-double B[2][2]={0.5*dt*dt,0,dt,0};
+double stateMatrix[2][2]={0.74,0,0,0};
+double stateTransitionMatrix[2][2]={1,dt,0,1};
+double stateTransitionMatrixTranspose[2][2]={0,0,0,0};
+double controlMatrix[2][2]={0.5*dt*dt,0,dt,0};
 double H[2][2]={1,0,0,0};
 double Ht[2][2]={0,0,0,0};
 double Kt[2][2]={0,0,0,0};
@@ -124,21 +116,21 @@ double R[2][2]={0.4,0,0,0};
 double y[2][2]={0,0,0,0};
 double S[2][2]={0,0,0,0};
 double I[2][2]={{1,0},{0,1}};
-double K[2][2]={0,0,0,0};
+double kalmanGain[2][2]={0,0,0,0};
 double verticalAccln[2][2]={0,0,0,0};
 double currentAltitude[2][2]={0,0,0,0};
 double P[2][2]={{1,0},{0,1}};
 
 void setup(){
   Serial.begin(115200);
-  Serial.println(F("Kalman filter code test"));
+  Serial.println("Kalman filter code test");
 
   // Activating IMU
   SPI.begin();
 
   // Checking for BMP
   if (!bmp.begin()) {
-    Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
+    Serial.println("Could not find a valid BMP280 sensor, check wiring!");
     while (1);
   }
   
@@ -210,45 +202,50 @@ void setup(){
     
     // STEP 1 Prediction
     
-    matrixMultiply(2,2,2,1,F,x,temp9);
-    matrixMultiply(2,1,1,1,B,verticalAccln,temp8);
-    matrixAdd(2,1,temp9,temp8,x);
-    matrixMultiply(2,2,2,2,F,P,temp1);
-    matrixTranspose(2,2,F,Ft);
-    matrixMultiply(2,2,2,2,temp1,Ft,temp2);
-    matrixAdd(2,2,temp2,Q,P);
+    // Predicting the state matrix =>   x(predict)=Ax(previous)+B*u;
+     
+    matrixMultiply(2,2,2,1,stateTransitionMatrix,stateMatrix,temp1);//A*x
+    matrixMultiply(2,1,1,1,controlMatrix,verticalAccln,temp2);//B*u
+    matrixAdd(2,1,temp1,temp2,stateMatrix);// A*x + B*u
+
+    // Calculating the Co-variance matrix => P=A*P*At +Q
+
+    matrixMultiply(2,2,2,2,stateTransitionMatrix,P,temp1); // A*P
+    matrixTranspose(2,2,stateTransitionMatrix,stateTransitionMatrixTranspose);// generating At(transpose of A)
+    matrixMultiply(2,2,2,2,temp1,stateTransitionMatrixTranspose,temp2);// (A*P) * At
+    matrixAdd(2,2,temp2,Q,P);// A*P*At +Q
     
     //STEP 2:Updation
     
-    matrixMultiply(1,2,2,1,H,x,temp11);
-    matrixSubtract(1,1,currentAltitude,temp11,y);
-    matrixTranspose(1,2,H,Ht);
-    matrixMultiply(2,2,2,1,P,Ht,temp9);
-    matrixMultiply(1,2,2,1,H,temp9,temp11);
-    matrixAdd(1,1,R,temp11,S);
-    S[0][0]=1/S[0][0];
-    matrixMultiply(2,1,1,1,temp9,S,K);
-    matrixMultiply(2,1,1,1,K,y,temp8);
-    matrixAdd(2,1,x,temp8,temp9);
-    x[0][0]=temp9[0][0];
-    x[0][1]=temp9[0][1];
-    matrixMultiply(2,1,1,2,K,H,temp1);
-    matrixSubtract(2,2,I,temp1,temp2);
-    matrixMultiply(2,2,2,2,temp2,P,temp3);
-    matrixMultiply(2,1,1,2,K,H,temp4);
-    matrixSubtract(2,2,I,temp4,temp5);
-    matrixTranspose(2,2,temp5,temp7);
-    matrixMultiply(2,2,2,2,temp3,temp7,temp6);
-    matrixMultiply(2,1,1,1,K,R,temp9);
-    matrixTranspose(2,1,K,Kt);
-    matrixMultiply(2,1,1,2,temp9,Kt,temp10);
-    matrixAdd(2,2,temp6,temp10,P);
+    // calculating the difference between altitude from altimeter and accelerometer  y=z-H*x
+    matrixMultiply(1,2,2,1,H,stateMatrix,temp1);//H*x
+    matrixSubtract(1,1,currentAltitude,temp1,y);//y=z-(H*x)
+    
+    // Calculating the Kalman gain => K= P*Ht/(S) where S=H*P*Ht +R
+    matrixTranspose(1,2,H,Ht); //calculating Ht(transpose of H)
+    matrixMultiply(2,2,2,1,P,Ht,temp1);// P*Ht
+    matrixMultiply(1,2,2,1,H,temp1,temp2);//H*P*Ht
+    matrixAdd(1,1,R,temp2,S);// S = H*P*Ht +R
+    S[0][0]=1/S[0][0];// changing S to 1/S 
+    matrixMultiply(2,1,1,1,temp1,S,kalmanGain);// k=P*Ht*(1/S)
+
+    // Calculating the estimated altitude => x(estimate) = x(predict) + K*y;
+    matrixMultiply(2,1,1,1,kalmanGain,y,temp1);//K*y
+    matrixAdd(2,1,stateMatrix,temp1,temp2);//x+Ky
+    stateMatrix[0][0]=temp2[0][0];// assigning values to same state matrix;
+    stateMatrix[0][1]=temp2[0][1];
+    
+    // calculating the updated Covariance matrix P   =>     P=[I-K*H]P
+    matrixMultiply(2,1,1,2,kalmanGain,H,temp1);//K*H
+    matrixSubtract(2,2,I,temp1,temp2);//I-K*H
+    matrixMultiply(2,2,2,2,temp2,P,P);//[I-K*H]*P
+
     Serial.print(" ");
     //Serial.print(".........");
-    Serial.print(x[0][0]);
+    Serial.print(stateMatrix[0][0]);
     Serial.print(" ");
     //Serial.print(".........");
-    Serial.println(x[0][0]*3.28084);
+    Serial.println(stateMatrix[0][0]*3.28084);
     
 
 
@@ -268,7 +265,7 @@ void setup(){
       dataFile.print(" ");
       dataFile.print(gForceZ);
       dataFile.print(" ");
-      dataFile.println(x[0][0]);
+      dataFile.println(stateMatrix[0][0]);
       dataFile.close();
       // print to the serial port too:
       Serial.println(dataString);
