@@ -43,8 +43,7 @@ double accelX,accelY,accelZ;
 float gForceX,gForceY,gForceZ;
 
 Adafruit_BMP280 bmp(BMP_CS, BMP_MOSI, BMP_MISO,  BMP_SCK);
-
-void Add1(int r,int c,double m1[][1],double m2[][1],double res[][1])
+void matrixAdd(int r,int c,double m1[][2],double m2[][2],double res[][2])
 {
   int i,j;
   for(i=0;i<r;i++){
@@ -60,40 +59,7 @@ void Add1(int r,int c,double m1[][1],double m2[][1],double res[][1])
   return ; 
 }
 
-void Add2(int r,int c,double m1[][2],double m2[][2],double res[][2])
-{
-  int i,j;
-  for(i=0;i<r;i++){
-    for(j=0;j<c;j++){
-      res[i][j]=0;
-    }
-  }
-  for(i=0;i<r;i++){
-    for(j=0;j<c;j++){
-      res[i][j]=m1[i][j]+m2[i][j];
-    }
-  }
-  return ; 
-}
-
-void Sub1(int r,int c,double m1[][1],double m2[][1],double res[][1])
-{
-  
-  int i,j;
-  for(i=0;i<r;i++){
-    for(j=0;j<c;j++){
-      res[i][j]=0;
-    }
-  }
-  for(i=0;i<r;i++){
-    for(j=0;j<c;j++){
-      res[i][j]=m1[i][j]-m2[i][j];
-    }
-  }
-
-}
-
-void Sub2(int r,int c,double m1[][2],double m2[][2],double res[][2])
+void matrixSubtract(int r,int c,double m1[][2],double m2[][2],double res[][2])
 {
   int i,j;
   for(i=0;i<r;i++){
@@ -103,7 +69,7 @@ void Sub2(int r,int c,double m1[][2],double m2[][2],double res[][2])
   }  
 }
 
-void MUL1(int r1, int c1, int r2, int c2,double m1[][1], double m2[][1], double res[][1])
+void matrixMultiply(int r1, int c1, int r2, int c2,double m1[][2], double m2[][2], double res[][2])
 {
   int i, j, k;
   for(i = 0; i < r1; ++i){
@@ -120,99 +86,20 @@ void MUL1(int r1, int c1, int r2, int c2,double m1[][1], double m2[][1], double 
   }
 
 }
-
-void MUL3(int r1, int c1, int r2, int c2,double m1[][2], double m2[][1], double res[][1])
-{
-  int i, j, k;
-  for(i = 0; i < r1; ++i){
-     for(j = 0; j < c2; ++j){
-        res[i][j] = 0;
-     }
-  }
-  for(i = 0; i < r1; ++i){
-    for(j = 0; j < c2; ++j){
-      for(k=0; k<c1; ++k){
-        res[i][j] += m1[i][k] * m2[k][j];
-      }
-    }
-  }
-
-}
-
-void MUL2(int r1, int c1, int r2, int c2,double m1[][1], double m2[][2], double res[][2])
-{
-  int i, j, k;
-  for(i = 0; i < r1; ++i){
-     for(j = 0; j < c2; ++j){
-        res[i][j] = 0;
-     }
-  }
-  for(i = 0; i < r1; ++i){
-    for(j = 0; j < c2; ++j){
-      for(k=0; k<c1; ++k){
-        res[i][j] += m1[i][k] * m2[k][j];
-      }
-    }
-  }
-
-}
-
-void MUL4(int r1, int c1, int r2, int c2,double m1[][2], double m2[][2], double res[][2])
-{
-  int i, j, k;
-  for(i = 0; i < r1; ++i){
-     for(j = 0; j < c2; ++j){
-        res[i][j] = 0;
-     }
-  }
-  for(i = 0; i < r1; ++i){
-    for(j = 0; j < c2; ++j){
-      for(k=0; k<c1; ++k){
-        res[i][j] += m1[i][k] * m2[k][j];
-      }
-    }
-  }
-
-}
-
-void transpose1(int r, int c, double m1[][1],double m2[][2])
+void matrixTranspose(int r, int c, double m1[][2],double m2[][2])
 {
     int i,j;
-    for(i=0;i<r;i++){
-      for(j=0;j<c;j++){
-        m2[i][j]=0;
-      }
-    }
-    for(i=0;i<r;i++){
-      for(j=0;j<c;j++){
-        m2[i][j]=m1[j][i];
-      }
-    }  
-}
-
-void transpose2(int r, int c, double m1[][2],double m2[][1])
-{
-    int i,j;
-    
+    for(i = 0; i < r; ++i){
+     for(j = 0; j < c; ++j){
+        m2[i][j] = 0;
+     }
+  }
     for(i=0;i<r;i++){
       for(j=0;j<c;j++){
         m2[j][i]=m1[i][j];
       }
     }  
 }
-
-void transpose3(int r, int c, double m1[][2],double m2[][2])
-{
-    int i,j;
-    
-    for(i=0;i<r;i++){
-      for(j=0;j<c;j++){
-        m2[j][i]=m1[i][j];
-      }
-    }  
-}
-static double altitude=0,acceleration=0,altitude_new=0;
-int a=0;
 double temp1[2][2]={0,0,0,0};
 double temp2[2][2]={0,0,0,0};
 double temp3[2][2]={0,0,0,0};
@@ -223,119 +110,139 @@ double temp7[2][2]={0,0,0,0};
 double temp8[2][1]={0,0};
 double temp9[2][1]={0,0};
 double temp10[2][2]={0,0,0,0};
-double temp11[1][1]={0};
+double temp11[2][2]={0,0,0,0};
 double dt = 0.02;
-double x[2][1]={{0.74},{0}};
-double F[2][2]={1,0.02,0,1};
+double x[2][2]={0.74,0,0,0};
+double F[2][2]={1,dt,0,1};
 double Ft[2][2]={0,0,0,0};
-double B[2][1]={{0.5*dt*dt},{dt}};
-double H[1][2]={1,0};
-double Ht[2][1]={0,0};
-double Kt[1][2]={0,0};
+double B[2][2]={0.5*dt*dt,0,dt,0};
+double H[2][2]={1,0,0,0};
+double Ht[2][2]={0,0,0,0};
+double Kt[2][2]={0,0,0,0};
 double Q[2][2]={0.4,0.4,0.4,4};
-double R[1][1]={0.4};
-double y[1][1]={0};
-double S[1][1]={0};
+double R[2][2]={0.4,0,0,0};
+double y[2][2]={0,0,0,0};
+double S[2][2]={0,0,0,0};
 double I[2][2]={{1,0},{0,1}};
-double K[2][1]={0,0};
-double u[1][1]={0};
-double z[1][1]={0};
+double K[2][2]={0,0,0,0};
+double verticalAccln[2][2]={0,0,0,0};
+double currentAltitude[2][2]={0,0,0,0};
 double P[2][2]={{1,0},{0,1}};
 
 void setup(){
   Serial.begin(115200);
   Serial.println(F("Kalman filter code test"));
 
+  // Activating IMU
   SPI.begin();
+
+  // Checking for BMP
   if (!bmp.begin()) {
     Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
     while (1);
   }
   
+  // Checking for SD card
   Serial.print("Initializing SD card...");
   if (!SD.begin(chipSelectForSDcard)) {
     Serial.println("Card failed, or not present");
-    // don't do anything more:
     while (1);
   }
   Serial.println("card initialized.");
 
   pinMode(chipSelectForMPU, OUTPUT);
-  //Configure SCP1000 for low noise configuration:
-  writeRegister(0x1C, 0x18);
-  writeRegister(0x6B, 0x00);
-  // writeRegister(0x68, 0x07);
-  // writeRegister(0x1D, 0x08);
-  // give the sensor time to set up:
-  delay(100);
-  /* Default settings from datasheet. */
-  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+
+  //Initialising BMP
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL     /* Operating Mode. */
                   Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
                   Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
                   Adafruit_BMP280::FILTER_X16,      /* Filtering. */
-                  Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+                  Adafruit_BMP280::STANDBY_MS_500
+                  ); /* Standby time. */
 
-    
-  for(int b=0;b<=1000;b++){
-    //Serial.print(F("Temperature = "));
+  // Initialising IMU registers
+  writeRegister(0x1C, 0x18);
+  writeRegister(0x6B, 0x00);
+  delay(100);
+
+  for(int numberOfIteration=0;numberOfIteration<=1000;numberOfIteration++){
+    //Temperature
     Serial.print(bmp.readTemperature());
     Serial.print(" ");
-    //Serial.println(" *C");
-    //Serial.print(F("Pressure = "));  
+
+    //Pressure  
     Serial.print(bmp.readPressure());
     Serial.print(" ");
-    //Serial.print(" Pa");
+    
+    //Altitude
     Serial.print(bmp.readAltitude(1013.25));
+    Serial.print(" ");
     writeRegister(0x6A, 0x10);
-    // if ((readRegister(0x3A)&(0x01)) == 0x01)
-    // {
+    
+    //Acceleration data
     accelX = readRegister(0x3B)<<8|readRegister(0x3C); //Store first two bytes into accelX
     accelY = readRegister(0x3D)<<8|readRegister(0x3E); //Store middle two bytes into accelY
     accelZ = readRegister(0x3F)<<8|readRegister(0x40); //Store last two bytes into accelZ
+    
+    //processing Accelerometer data
     processAccelData();
-    //Serial.print(" Accel (g)");
-    //Serial.print(" X=");  
+
+    //Accln along x  
     Serial.print(gForceX);
     Serial.print(" ");
-    //Serial.print(" Y=");
+    
+    //Accln along y 
     Serial.print(gForceY);
-    //Serial.print(" Z=");
     Serial.print(" ");
+
+    //Accln along z 
     Serial.print(gForceZ);
-    //step 1:Prediction
-    u[0][0]=gForceX;
-    z[0][0]=bmp.readAltitude(1013.25);
-    MUL3(2,2,2,1,F,x,temp9);
-    MUL1(2,1,1,1,B,u,temp8);
-    Add1(2,1,temp9,temp8,x);
-    MUL4(2,2,2,2,F,P,temp1);
-    transpose3(2,2,F,Ft);
-    MUL4(2,2,2,2,temp1,Ft,temp2);
-    Add2(2,2,temp2,Q,P);
-    //step 2:UpdationM
-    MUL3(1,2,2,1,H,x,temp11);
-    Sub1(1,1,z,temp11,y);
-    transpose2(1,2,H,Ht);
-    MUL3(2,2,2,1,P,Ht,temp9);
-    MUL3(1,2,2,1,H,temp9,temp11);
-    Add1(1,1,R,temp11,S);
+    Serial.print(" ");
+
+    //---------------------------------------------------------------------------------------------------
+    //                                            KALMAN FILTERING                            
+    //---------------------------------------------------------------------------------------------------
+
+    // Initialising variables
+    
+    verticalAccln[0][0]=gForceZ;
+    currentAltitude[0][0]=bmp.readAltitude(1013.25);
+    
+    // STEP 1 Prediction
+    
+    matrixMultiply(2,2,2,1,F,x,temp9);
+    matrixMultiply(2,1,1,1,B,verticalAccln,temp8);
+    matrixAdd(2,1,temp9,temp8,x);
+    matrixMultiply(2,2,2,2,F,P,temp1);
+    matrixTranspose(2,2,F,Ft);
+    matrixMultiply(2,2,2,2,temp1,Ft,temp2);
+    matrixAdd(2,2,temp2,Q,P);
+    
+    //STEP 2:Updation
+    
+    matrixMultiply(1,2,2,1,H,x,temp11);
+    matrixSubtract(1,1,currentAltitude,temp11,y);
+    matrixTranspose(1,2,H,Ht);
+    matrixMultiply(2,2,2,1,P,Ht,temp9);
+    matrixMultiply(1,2,2,1,H,temp9,temp11);
+    matrixAdd(1,1,R,temp11,S);
     S[0][0]=1/S[0][0];
-    MUL1(2,1,1,1,temp9,S,K);
-    MUL1(2,1,1,1,K,y,temp8);
-    Add1(2,1,x,temp8,temp9);
+    matrixMultiply(2,1,1,1,temp9,S,K);
+    matrixMultiply(2,1,1,1,K,y,temp8);
+    matrixAdd(2,1,x,temp8,temp9);
     x[0][0]=temp9[0][0];
     x[0][1]=temp9[0][1];
-    MUL2(2,1,1,2,K,H,temp1);
-    Sub2(2,2,I,temp1,temp2);
-    MUL4(2,2,2,2,temp2,P,temp3);
-    MUL2(2,1,1,2,K,H,temp4);
-    Sub2(2,2,I,temp4,temp5);
-    transpose3(2,2,temp5,temp7);
-    MUL4(2,2,2,2,temp3,temp7,temp6);
-    MUL1(2,1,1,1,K,R,temp9);
-    transpose1(2,1,K,Kt);
-    MUL2(2,1,1,2,temp9,Kt,temp10);
-    Add2(2,2,temp6,temp10,P);
+    matrixMultiply(2,1,1,2,K,H,temp1);
+    matrixSubtract(2,2,I,temp1,temp2);
+    matrixMultiply(2,2,2,2,temp2,P,temp3);
+    matrixMultiply(2,1,1,2,K,H,temp4);
+    matrixSubtract(2,2,I,temp4,temp5);
+    matrixTranspose(2,2,temp5,temp7);
+    matrixMultiply(2,2,2,2,temp3,temp7,temp6);
+    matrixMultiply(2,1,1,1,K,R,temp9);
+    matrixTranspose(2,1,K,Kt);
+    matrixMultiply(2,1,1,2,temp9,Kt,temp10);
+    matrixAdd(2,2,temp6,temp10,P);
     Serial.print(" ");
     //Serial.print(".........");
     Serial.print(x[0][0]);
@@ -423,6 +330,7 @@ unsigned int readRegister(byte thisRegister)
   SPI.endTransaction();
   return(result);
 }
+
 //Sends a write command to MPU6500
 void writeRegister(byte thisRegister, byte thisValue) {
   SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
