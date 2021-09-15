@@ -1,4 +1,11 @@
-/* pin configuration
+/*
+----------------------------------------------------------------------------------------------------------------------------------------------------
+													
+													ARDUINO CODE FOR PARACHUTE DEPLOYMENT
+													
+----------------------------------------------------------------------------------------------------------------------------------------------------													
+
+    pin configuration
  *  1. BMP280
  *        scl-7
  *        MISO(SDA)-6
@@ -20,15 +27,23 @@
 #include <SPI.h>
 #include <SD.h>
 #include <Adafruit_BMP280.h>
+
+// Declaring pins for BMP280
+
 #define BMP_SCK  (7)
 #define BMP_MISO (6)
 #define BMP_MOSI (5)
 #define BMP_CS   (3)
-const int chipSelect = 4;//for SD card module
-const int chipSelectPin = 10;//for MPU 6500
+
+
+const int chipSelectForSDcard = 4;//for SD card module
+const int chipSelectForMPU = 10;//for MPU 6500
+
 double accelX,accelY,accelZ;
 float gForceX,gForceY,gForceZ;
+
 Adafruit_BMP280 bmp(BMP_CS, BMP_MOSI, BMP_MISO,  BMP_SCK);
+
 void Add1(int r,int c,double m1[][1],double m2[][1],double res[][1])
 {
   int i,j;
@@ -44,6 +59,7 @@ void Add1(int r,int c,double m1[][1],double m2[][1],double res[][1])
   }
   return ; 
 }
+
 void Add2(int r,int c,double m1[][2],double m2[][2],double res[][2])
 {
   int i,j;
@@ -59,6 +75,7 @@ void Add2(int r,int c,double m1[][2],double m2[][2],double res[][2])
   }
   return ; 
 }
+
 void Sub1(int r,int c,double m1[][1],double m2[][1],double res[][1])
 {
   
@@ -75,6 +92,7 @@ void Sub1(int r,int c,double m1[][1],double m2[][1],double res[][1])
   }
 
 }
+
 void Sub2(int r,int c,double m1[][2],double m2[][2],double res[][2])
 {
   int i,j;
@@ -102,6 +120,7 @@ void MUL1(int r1, int c1, int r2, int c2,double m1[][1], double m2[][1], double 
   }
 
 }
+
 void MUL3(int r1, int c1, int r2, int c2,double m1[][2], double m2[][1], double res[][1])
 {
   int i, j, k;
@@ -119,6 +138,7 @@ void MUL3(int r1, int c1, int r2, int c2,double m1[][2], double m2[][1], double 
   }
 
 }
+
 void MUL2(int r1, int c1, int r2, int c2,double m1[][1], double m2[][2], double res[][2])
 {
   int i, j, k;
@@ -154,6 +174,7 @@ void MUL4(int r1, int c1, int r2, int c2,double m1[][2], double m2[][2], double 
   }
 
 }
+
 void transpose1(int r, int c, double m1[][1],double m2[][2])
 {
     int i,j;
@@ -168,6 +189,7 @@ void transpose1(int r, int c, double m1[][1],double m2[][2])
       }
     }  
 }
+
 void transpose2(int r, int c, double m1[][2],double m2[][1])
 {
     int i,j;
@@ -178,6 +200,7 @@ void transpose2(int r, int c, double m1[][2],double m2[][1])
       }
     }  
 }
+
 void transpose3(int r, int c, double m1[][2],double m2[][2])
 {
     int i,j;
@@ -189,8 +212,8 @@ void transpose3(int r, int c, double m1[][2],double m2[][2])
     }  
 }
 static double altitude=0,acceleration=0,altitude_new=0;
-    int a=0;
-    double temp1[2][2]={0,0,0,0};
+int a=0;
+double temp1[2][2]={0,0,0,0};
 double temp2[2][2]={0,0,0,0};
 double temp3[2][2]={0,0,0,0};
 double temp4[2][2]={0,0,0,0};
@@ -222,20 +245,22 @@ double P[2][2]={{1,0},{0,1}};
 void setup(){
   Serial.begin(115200);
   Serial.println(F("Kalman filter code test"));
+
   SPI.begin();
   if (!bmp.begin()) {
     Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
     while (1);
   }
+  
   Serial.print("Initializing SD card...");
-
-  if (!SD.begin(chipSelect)) {
+  if (!SD.begin(chipSelectForSDcard)) {
     Serial.println("Card failed, or not present");
     // don't do anything more:
     while (1);
   }
   Serial.println("card initialized.");
-  pinMode(chipSelectPin, OUTPUT);
+
+  pinMode(chipSelectForMPU, OUTPUT);
   //Configure SCP1000 for low noise configuration:
   writeRegister(0x1C, 0x18);
   writeRegister(0x6B, 0x00);
@@ -250,12 +275,13 @@ void setup(){
                   Adafruit_BMP280::FILTER_X16,      /* Filtering. */
                   Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
 
-    for(int b=0;b<=1000;b++){
+    
+  for(int b=0;b<=1000;b++){
     //Serial.print(F("Temperature = "));
     Serial.print(bmp.readTemperature());
     Serial.print(" ");
     //Serial.println(" *C");
-    //Serial.print(F("Pressure = "));
+    //Serial.print(F("Pressure = "));  
     Serial.print(bmp.readPressure());
     Serial.print(" ");
     //Serial.print(" Pa");
@@ -268,8 +294,7 @@ void setup(){
     accelZ = readRegister(0x3F)<<8|readRegister(0x40); //Store last two bytes into accelZ
     processAccelData();
     //Serial.print(" Accel (g)");
-    //Serial.print(" X=");
-    
+    //Serial.print(" X=");  
     Serial.print(gForceX);
     Serial.print(" ");
     //Serial.print(" Y=");
@@ -287,61 +312,65 @@ void setup(){
     transpose3(2,2,F,Ft);
     MUL4(2,2,2,2,temp1,Ft,temp2);
     Add2(2,2,temp2,Q,P);
-  
-  //step 2:UpdationM
-  MUL3(1,2,2,1,H,x,temp11);
-  Sub1(1,1,z,temp11,y);
-  transpose2(1,2,H,Ht);
-  MUL3(2,2,2,1,P,Ht,temp9);
-  MUL3(1,2,2,1,H,temp9,temp11);
-  Add1(1,1,R,temp11,S);
-  S[0][0]=1/S[0][0];
-  MUL1(2,1,1,1,temp9,S,K);
-  MUL1(2,1,1,1,K,y,temp8);
-  Add1(2,1,x,temp8,temp9);
-  x[0][0]=temp9[0][0];
-  x[0][1]=temp9[0][1];
-  MUL2(2,1,1,2,K,H,temp1);
-  Sub2(2,2,I,temp1,temp2);
-  MUL4(2,2,2,2,temp2,P,temp3);
-  MUL2(2,1,1,2,K,H,temp4);
-  Sub2(2,2,I,temp4,temp5);
-  transpose3(2,2,temp5,temp7);
-  MUL4(2,2,2,2,temp3,temp7,temp6);
-  MUL1(2,1,1,1,K,R,temp9);
-  transpose1(2,1,K,Kt);
-  MUL2(2,1,1,2,temp9,Kt,temp10);
-  Add2(2,2,temp6,temp10,P);
-  Serial.print(" ");
-  //Serial.print(".........");
-  Serial.print(x[0][0]);
-  Serial.print(" ");
-  //Serial.print(".........");
-  Serial.println(x[0][0]*3.28084);
-  
-  String dataString = "";
-  File dataFile = SD.open("datalog.txt", FILE_WRITE);
-  if (dataFile) {
-    dataFile.print(bmp.readTemperature());
-    dataFile.print(" ");
-    dataFile.print(bmp.readPressure());
-    dataFile.print(" ");
+    //step 2:UpdationM
+    MUL3(1,2,2,1,H,x,temp11);
+    Sub1(1,1,z,temp11,y);
+    transpose2(1,2,H,Ht);
+    MUL3(2,2,2,1,P,Ht,temp9);
+    MUL3(1,2,2,1,H,temp9,temp11);
+    Add1(1,1,R,temp11,S);
+    S[0][0]=1/S[0][0];
+    MUL1(2,1,1,1,temp9,S,K);
+    MUL1(2,1,1,1,K,y,temp8);
+    Add1(2,1,x,temp8,temp9);
+    x[0][0]=temp9[0][0];
+    x[0][1]=temp9[0][1];
+    MUL2(2,1,1,2,K,H,temp1);
+    Sub2(2,2,I,temp1,temp2);
+    MUL4(2,2,2,2,temp2,P,temp3);
+    MUL2(2,1,1,2,K,H,temp4);
+    Sub2(2,2,I,temp4,temp5);
+    transpose3(2,2,temp5,temp7);
+    MUL4(2,2,2,2,temp3,temp7,temp6);
+    MUL1(2,1,1,1,K,R,temp9);
+    transpose1(2,1,K,Kt);
+    MUL2(2,1,1,2,temp9,Kt,temp10);
+    Add2(2,2,temp6,temp10,P);
+    Serial.print(" ");
+    //Serial.print(".........");
+    Serial.print(x[0][0]);
+    Serial.print(" ");
+    //Serial.print(".........");
+    Serial.println(x[0][0]*3.28084);
     
-    dataFile.print(bmp.readAltitude(1013.25));
-    dataFile.print(" ");
-    dataFile.print(gForceX);
-    dataFile.print(" ");
-    dataFile.print(gForceY);
-    dataFile.print(" ");
-    dataFile.print(gForceZ);
-    dataFile.print(" ");
-    dataFile.println(x[0][0]);
-    dataFile.close();
-    // print to the serial port too:
-    Serial.println(dataString);
-  }
- }  
+
+
+    String dataString = "";
+    File dataFile = SD.open("datalog.txt", FILE_WRITE);
+    if (dataFile) {
+      dataFile.print(bmp.readTemperature());
+      dataFile.print(" ");
+      dataFile.print(bmp.readPressure());
+      dataFile.print(" ");
+      
+      dataFile.print(bmp.readAltitude(1013.25));
+      dataFile.print(" ");
+      dataFile.print(gForceX);
+      dataFile.print(" ");
+      dataFile.print(gForceY);
+      dataFile.print(" ");
+      dataFile.print(gForceZ);
+      dataFile.print(" ");
+      dataFile.println(x[0][0]);
+      dataFile.close();
+      // print to the serial port too:
+      Serial.println(dataString);
+    }
+  }  
 }
+
+
+// No Code in loop
 void loop()
 {
   
@@ -379,30 +408,30 @@ void processAccelData()
 //Read from or write to register from the SCP1000:
 unsigned int readRegister(byte thisRegister)
 {
-byte dataToSend = thisRegister | 0x80;
-SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
-// take the chip select low to select the device:
-digitalWrite(chipSelectPin, LOW);
-// send the device the register you want to read:
-SPI.transfer(dataToSend);
-// send a value of 0 to read the first byte returned:
-byte result = SPI.transfer(0x00);
-// decrement the number of bytes left to read:
-// take the chip select high to de-select:
-digitalWrite(chipSelectPin, HIGH);
-// release control of the SPI port
-SPI.endTransaction();
-return(result);
+  byte dataToSend = thisRegister | 0x80;
+  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  // take the chip select low to select the device:
+  digitalWrite(chipSelectForMPU, LOW);
+  // send the device the register you want to read:
+  SPI.transfer(dataToSend);
+  // send a value of 0 to read the first byte returned:
+  byte result = SPI.transfer(0x00);
+  // decrement the number of bytes left to read:
+  // take the chip select high to de-select:
+  digitalWrite(chipSelectForMPU, HIGH);
+  // release control of the SPI port
+  SPI.endTransaction();
+  return(result);
 }
 //Sends a write command to MPU6500
 void writeRegister(byte thisRegister, byte thisValue) {
-SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
-// take the chip select low to select the device:
-digitalWrite(chipSelectPin, LOW);
-SPI.transfer(thisRegister); //Send register location
-SPI.transfer(thisValue); //Send value to record into register
-// take the chip select high to de-select:
-digitalWrite(chipSelectPin, HIGH);
-// release control of the SPI port
-SPI.endTransaction();
+  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  // take the chip select low to select the device:
+  digitalWrite(chipSelectForMPU, LOW);
+  SPI.transfer(thisRegister); //Send register location
+  SPI.transfer(thisValue); //Send value to record into register
+  // take the chip select high to de-select:
+  digitalWrite(chipSelectForMPU, HIGH);
+  // release control of the SPI port
+  SPI.endTransaction();
 }
